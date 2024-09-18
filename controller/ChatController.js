@@ -1,6 +1,6 @@
 const passport = require('passport');
 const { validationResult } = require('express-validator');
-const {User,Contact,Chat} = require('../models');
+const {User,Contact,Chat,Status} = require('../models');
 const { Sequelize, Op, where } = require('sequelize');
 module.exports = {
     view: async function (req, res) {
@@ -41,7 +41,7 @@ module.exports = {
         
     },
     contact:async function(req,res){
-          const contact = await Contact.findAll({
+          let contact = await Contact.findAll({
             where: {
               user_mobile:req.user.mobile
             }
@@ -49,33 +49,40 @@ module.exports = {
 
           const contMobile = contact.map(item=>item.friend_mobile)
           const newContact = await Chat.findAll({
-            attributes: ['user_mobile'],
-            group: ['user_mobile'],
+            attributes: ['friend_mobile'],
+            group: ['friend_mobile'],
             where:{
-              user_mobile:{
+              user_mobile:req.user.mobile,
+              friend_mobile:{
                 [Op.notIn]: contMobile
               },
-              friend_mobile:req.user.mobile,
-              status:'view'
+              status:'receive'
             }
           })
           
-          const newContactMobile = newContact.map(item=>item.user_mobile)
+          const newContactMobile = newContact.map(item=>item.friend_mobile)
           if(newContactMobile.length){
               const newContact = newContactMobile.map(function(item){
-                      return {
-                                    user_mobile:req.user.mobile,
-                                    username:item,
-                                    friend_mobile:item
+                     return {
+                              user_mobile:req.user.mobile,
+                              username:item,
+                              friend_mobile:item 
                             }
               })
               await Contact.bulkCreate(newContact);
+              contact = await Contact.findAll({
+                where: {
+                  user_mobile:req.user.mobile
+                }
+              })
+            
           }
-         return res.json({
+
+          return res.json({
             status:200,
             data:contact,
             room:req.user.mobile
-         })
+          })
     },
     login:function(req,res,next){
         
@@ -116,65 +123,50 @@ module.exports = {
     },
     chat:async function(req,res) {
 
-
-      /* const after = await Chat.findOne({
-        attributes: ['id'],
-        where:{
-          user_mobile:req.user.mobile,
-          friend_mobile:req.query.friend,
-          status:'drop'
-        }
-      }) */
-      
       const msg = await Chat.findAll({
         where:{
-          user_mobile:{
-            [Op.in]:[req.user.mobile,req.query.friend]
-          },
-          friend_mobile:{
-            [Op.in]:[req.user.mobile,req.query.friend]
-          },
-          status:'view'
+          user_mobile:req.user.mobile,
+          friend_mobile:req.query.friend
         }
       })
 
-
-    
       return res.json({
         status:200,
         msg:msg
       })
     },
-
-
-    /* deleteContact:function(req,res) {
-      let json = {}
-      Contact.destroy({
+    status:async function(req,res) {
+      let status = await Status.findAll({
+        where:{
+          mobile:{
+            [Op.in]: req.body.contact
+          }
+        }
+      })
+      return res.json({
+        status:200,
+        data:status
+      })
+    },
+    deleteContact:async function(req,res) {
+     
+      await Contact.destroy({
         where: {
           friend_mobile: req.query.friend,
         },
-      }).then(async () => {
-        await Chat.destroy({
-          where:{
-            user_mobile:req.user.mobile,
-            friend_mobile:req.query.friend,
-            status:'drop',
-          }
-        })
-        await Chat.create({
+      })
+      await Chat.destroy({
+        where:{
           user_mobile:req.user.mobile,
           friend_mobile:req.query.friend,
-          status:'drop',
-          msg:''
-        })
-        json['status'] = 200
-      }).catch((error) => {
-        json['status'] = 400
-        json['error'] = error
-      });
+        }
+      })
 
-      return res.json(json)
-    }, */
+      return res.json({
+        status:200,
+        msg:"Remove Successfully!"
+      })
+    },
     
 
   };

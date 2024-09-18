@@ -4,15 +4,14 @@ function socket(io){
     io.on("connection", (socket) => {
         socket.on("join",function(room){
             socket.join(room)
-            io.to(room).emit("join", socket.id);
+            // io.to(room).emit("join", socket.id);
         })
         
 
         socket.on('send', async (msg) => {
             await sendMsg(msg)
-            if(!isNaN(msg.friend)){
-                  io.to(parseInt(msg.friend)).emit('send', msg);
-            }
+            if(!isNaN(msg.friend)) io.to(parseInt(msg.friend)).emit('send', msg);
+            
             
         });
     
@@ -24,12 +23,20 @@ function socket(io){
 }
 
 async function sendMsg(obj){
-      await Chat.create({
-           user_mobile:obj.user,
-           friend_mobile:obj.friend,
-           status:obj.status,
-           msg:obj.msg
-      })
+    await Chat.bulkCreate([
+        {
+            user_mobile:obj.user,
+            friend_mobile:obj.friend,
+            status:'send',
+            msg:obj.msg
+        },
+        {
+            user_mobile:obj.friend,
+            friend_mobile:obj.user,
+            status:'receive',
+            msg:obj.msg
+        },
+    ])
 }
 
 module.exports = socket

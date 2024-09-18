@@ -9,12 +9,12 @@ const {User,Contact,Chat} = require('../models');
 const router = express.Router();
 
 router.get('/trunkcate/:id', async function(req,res){
-  await Chat.destroy({
-    where: {
-      id: req.params.id,
-    },
+  Chat.truncate({ force: true }) // 'force: true' is used to bypass foreign key constraints
+  .then(() => {
+    res.send('Table truncated successfully.')
+  }).catch((error) => {
+    res.send('Error occurred while truncating the table:', error)
   });
-  return res.send('done')
 })
 
 
@@ -50,20 +50,13 @@ router.use(
     '/',
     auth,
     group((route) => {
-
       route.get("/", ChatController.view)
       route.post("/add-user", [
         check('mobile', 'Mobile required valid number').isMobilePhone('any').withMessage('Invalid mobile number').isLength({
           min: 10,
           max: 10,
         }).matches(/^\d+$/).withMessage('Mobile number must contain only digits').custom(async (value, { req }) => {
-         
-          // const contact = await Contact.findOne({
-          //   where:{
-          //     friend_mobile:value,
-          //     user_mobile:req.user.mobile
-          //   }
-          // })
+        
           if (req.user && req.user.mobile == value) {
             return Promise.reject('Mobile already in use');
           }
@@ -72,7 +65,8 @@ router.use(
       ], ChatController.add)
       route.get("/contact-list", ChatController.contact)
       route.get("/chat-list", ChatController.chat)
-      // route.get("/delete-user", ChatController.deleteContact)
+      route.post("/load-status", ChatController.status)
+      route.get("/delete-user", ChatController.deleteContact)
      
       
     })
