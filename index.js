@@ -1,5 +1,6 @@
 const http = require("http");
 const express = require("express");
+const fileUpload = require('express-fileupload');
 const { rootPath, url } = require('./module/url');
 const { Server } = require("socket.io");
 const app = express();
@@ -14,7 +15,9 @@ const socket = require("./module/socket");
 const passport = require('passport');
 const initializePassport = require('./config/passport');
 initializePassport(passport);
-
+app.use(fileUpload({
+  createParentPath: true
+}));
 app.use(
     session({
       secret: 'secret',
@@ -28,7 +31,6 @@ app.use(passport.session());
 app.use(flash());
 app.use((req, res, next) => {
   app.locals.url = url(req,res)
-  
   res.locals.error = req.flash('error'); // This will catch Passport errors
   next();
 });

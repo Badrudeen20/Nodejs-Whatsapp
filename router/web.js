@@ -67,7 +67,7 @@ router.use(
       route.get("/chat-list", ChatController.chat)
       route.post("/load-status", ChatController.status)
       route.get("/delete-user", ChatController.deleteContact)
-     
+      route.post("/check-status", ChatController.uploadStatus)
       
     })
 ); 

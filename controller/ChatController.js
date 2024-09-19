@@ -2,6 +2,8 @@ const passport = require('passport');
 const { validationResult } = require('express-validator');
 const {User,Contact,Chat,Status} = require('../models');
 const { Sequelize, Op, where } = require('sequelize');
+const path = require('path');
+const { rootPath } = require('../module/url');
 module.exports = {
     view: async function (req, res) {
         res.render("index");
@@ -167,6 +169,28 @@ module.exports = {
         msg:"Remove Successfully!"
       })
     },
-    
+    uploadStatus:function(req,res){
+        try {
+          if (!req.files || Object.keys(req.files).length === 0) {
+              return res.status(400).send({ message: 'No file uploaded' });
+          }
+          let uploadedFile = req.files.file;
+          const uploadPath = path.join(process.cwd(), 'public/uploads', uploadedFile.name);
+        
+          uploadedFile.mv(uploadPath, (err) => {
+              if (err) {
+                  return res.status(500).send(err);
+              }
+
+              res.send({
+                  message: 'File uploaded successfully!',
+                  fileName: uploadedFile.name,
+                  filePath: `/uploads/${uploadedFile.name}`
+              });
+          });
+      } catch (err) {
+          res.status(500).send(err);
+      }
+    }
 
   };
